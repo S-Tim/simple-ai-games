@@ -13,9 +13,9 @@ from tictactoe_state import TicTacToeState
               type=click.Choice(['console', 'window']),
               help='Starts game in a terminal or a window.')
 @click.option('--ai-player', '-p',
-              default='nn',
-              type=click.Choice(['nn', 'minimax']),
-              help='Number of epochs to train.')
+              default='cnn',
+              type=click.Choice(['nn', 'minimax', 'cnn']),
+              help='Type of ai player')
 @click.option('--epochs', '-e',
               default=3,
               help='Number of epochs to train. (only for ai-player=nn)')
@@ -29,6 +29,12 @@ def tictactoe(simulations, mode, ai_player, epochs, lookahead):
     if ai_player == 'nn':
         from tictactoe_model import TicTacToeModel
         model = TicTacToeModel()
+        plays = simulate(state, simulations)
+        model.train(plays, epochs=epochs)
+        autoplayer = NNPlayer(model)
+    elif ai_player == 'cnn':
+        from tictactoe_model_cnn import TicTacToeModelCnn
+        model = TicTacToeModelCnn()
         plays = simulate(state, simulations)
         model.train(plays, epochs=epochs)
         autoplayer = NNPlayer(model)
