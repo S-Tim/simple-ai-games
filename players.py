@@ -1,16 +1,25 @@
 from abc import ABC, abstractmethod
 from random import randint
+
 from numpy import argmax
 
 
 class Player(ABC):
+    def __init__(self, name=''):
+        self.name = name
 
     @abstractmethod
     def next_action(self, state):
         ...
 
+    def __str__(self):
+        return self.name
+
 
 class IndecisivePlayer(Player):
+    def __init__(self, name=''):
+        super().__init__(name)
+        self.name = name
 
     def next_action(self, state):
         moves = self.next_actions(state)
@@ -43,32 +52,42 @@ class ConsolePlayer(Player):
 
 class MiniMaxPlayer(IndecisivePlayer):
     def __init__(self, lookahead):
+        super().__init__('MiniMax')
         assert lookahead > 0
         self.lookahead = lookahead
 
     def next_actions(self, state):
-        moves, _ = self.value(state, self.lookahead)
-        return moves
+        values = [(action, self.minimax(state.move(action), self.lookahead)) for action in state.actions()]
 
-    def value(self, state, lookahead):
-        if lookahead == 0 or state.gameover():
-            return [], 1.0*state.winner()*(lookahead+1)
-        behaviour = max if state.player() == 1 else min
-        return self.minimax(state, behaviour, lookahead)
+        behavior = max if state.player() == 1 else min
+        best_value = behavior(values, key=lambda a: a[1])[1]
+        best_moves = filter(lambda x: x[1] == best_value, values)
 
-    def minimax(self, state, behaviour, lookahead):
-        moves, res = [], -10000*state.player()
-        for cell in state.actions():
-            _, v = self.value(state.move(cell), lookahead-1)
-            if res == v:
-                moves.append(cell)
-            elif behaviour(res, v) == v:
-                moves, res = [cell], v
-        return moves, res
+        return list(map(lambda x: x[0], best_moves))
+
+    def minimax(self, state, lookahead):
+        if state.gameover() or lookahead == 0:
+            # return 1 or -1 if someone won, else 0
+            return state.winner()
+
+        # maximizing
+        # state.player() is the next player to move but here we evaluate the possible states when we would move
+        if state.player() == 1:
+            max_eval = -1
+            evaluations = [self.minimax(state.move(action), lookahead - 1) for action in state.actions()]
+            max_eval = max(max_eval, *evaluations)
+            return max_eval
+        else:
+            # minimizing
+            min_eval = 1
+            evaluations = [self.minimax(state.move(action), lookahead - 1) for action in state.actions()]
+            min_eval = min(min_eval, *evaluations)
+            return min_eval
 
 
 class NNPlayer(Player):
-    def __init__(self, model):
+    def __init__(self, model, name=''):
+        super().__init__(name)
         self.model = model
 
     def next_action(self, state):
@@ -78,3 +97,18 @@ class NNPlayer(Player):
         probs = self.model.predict(states)
         player_probs = [p[current_player] for p in probs]
         return actions[argmax(player_probs)]
+
+
+class ReinforcementPlayer(Player):
+    def __init__(self, model, name=''):
+        super().__init__(name)
+        self.model = model
+
+    def next_action(self, state):
+        actions = state.actions()
+        states = [state.move(action).cells for action in actions]
+        rewards = self.model.predict(states)
+        behavior = max if state.player() == 1 else min
+        moves = zip(actions, rewards)
+        best_move = behavior(moves, key=lambda move: move[1])
+        return best_move[0]

@@ -21,7 +21,6 @@ def simulate(state, play_count, player1=None, player2=None):
     with click.progressbar(label=label, length=play_count) as bar:
         for _ in range(play_count):
             states, winner = play(state, player1, player2)
-            if winner != 0:
-                plays.append((states, winner))
+            plays.append((states, winner))
             bar.update(1)
     return plays
