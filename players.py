@@ -1,5 +1,6 @@
+import random
 from abc import ABC, abstractmethod
-from random import randint
+from random import randint, choice, random
 
 from numpy import argmax
 
@@ -66,9 +67,11 @@ class MiniMaxPlayer(IndecisivePlayer):
         return list(map(lambda x: x[0], best_moves))
 
     def minimax(self, state, lookahead):
-        if state.gameover() or lookahead == 0:
+        if state.gameover():
             # return 1 or -1 if someone won, else 0
             return state.winner()
+        elif lookahead == 0:
+            return self.static_eval(state)
 
         # maximizing
         # state.player() is the next player to move but here we evaluate the possible states when we would move
@@ -84,6 +87,36 @@ class MiniMaxPlayer(IndecisivePlayer):
             min_eval = min(min_eval, *evaluations)
             return min_eval
 
+    def static_eval(self, state):
+        return 0
+
+
+class MiniMaxPlayerNN(MiniMaxPlayer):
+    def __init__(self, lookahead, model):
+        super().__init__(lookahead)
+        self.model = model
+
+    def static_eval(self, state):
+        return self.model.predict(state.cells)
+
+
+class MiniMaxPlayerNN2(MiniMaxPlayer):
+    def __init__(self, lookahead, player):
+        super().__init__(lookahead)
+        self.player = player
+
+    def next_actions(self, state):
+        values = [(action, self.minimax(state.move(action), self.lookahead)) for action in state.actions()]
+
+        behavior = max if state.player() == 1 else min
+        best_value = behavior(values, key=lambda a: a[1])[1]
+        if best_value == 0:
+            return [self.player.next_action(state)]
+        else:
+            best_moves = filter(lambda x: x[1] == best_value, values)
+
+        return list(map(lambda x: x[0], best_moves))
+
 
 class NNPlayer(Player):
     def __init__(self, model, name=''):
@@ -96,7 +129,13 @@ class NNPlayer(Player):
         states = [state.move(action).cells for action in actions]
         probs = self.model.predict(states)
         player_probs = [p[current_player] for p in probs]
-        return actions[argmax(player_probs)]
+
+        # print("Max probability:", max(player_probs))
+        # if max(player_probs) < 0.75:
+        if random() < 0.1:
+            return choice(actions)
+        else:
+            return actions[argmax(player_probs)]
 
 
 class ReinforcementPlayer(Player):

@@ -16,17 +16,18 @@ class TicTacToeModelCnn2(Model):
     def build_model(self, ninput, layers):
         input_layer = Input(shape=(3, 3, 1))
         x = input_layer
-        x = Conv2D(128, (2, 2), activation='relu')(x)
+        x = Conv2D(64, (2, 2), activation='relu')(x)
+        # x = Conv2D(16, (1, 3), activation='relu')(x)
         x = Flatten()(x)
-        x = Dense(64, activation='relu')(x)
-        x = Dense(64, activation='relu')(x)
+        x = Dense(32, activation='relu')(x)
+        x = Dense(32, activation='relu')(x)
         output_layer = Dense(1)(x)
 
         model = tf.keras.Model(input_layer, output_layer)
 
-        opt = keras.optimizers.RMSprop(learning_rate=0.0001)
+        # opt = keras.optimizers.RMSprop(learning_rate=0.0001)
         model.compile(loss='mean_squared_error',
-                      optimizer=opt,
+                      optimizer='adam',
                       metrics=['accuracy'])
 
         return model

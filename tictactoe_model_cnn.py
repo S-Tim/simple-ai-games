@@ -17,7 +17,7 @@ class TicTacToeModelCnn(Model):
         input_layer = Input(shape=(3, 3, 1))
         x = input_layer
         x = Conv2D(64, (2, 2), activation='relu')(x)
-        x = Conv2D(64, (2, 2), activation='relu')(x)
+        # x = Conv2D(64, (2, 2), activation='relu')(x)
         x = Flatten()(x)
         x = Dense(64, activation='relu', )(x)
         output_layer = Dense(3, activation='softmax')(x)
